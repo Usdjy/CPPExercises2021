@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "../src/some_math.h"
-
-// TODO 00 Если вы видите ошибку Process finished with exit code -1073741515 (0xC0000135):
+using namespace std;
+//00 Если вы видите ошибку Process finished with exit code -1073741515 (0xC0000135):
 // Скопируйте из папки cmake-build-debug/bin/ файлы
 // - gtest_maind.dll
 // - gtestd.dll
@@ -34,8 +34,10 @@ TEST(lesson01, fib10) {
 }
 
 TEST(lesson01, fib100) {
-    fibbonachiRecursive(10); // TODO 05 обратите внимание что рекурсивный Фибоначчи очень медленный, переделайте его на быстрый вариант, замените его здесь и убедитесь что стало быстрее
-   fibbonachiFast(100);
+    fibbonachiRecursive(10); // ну я число уменьшил ??? 05 обратите внимание что рекурсивный Фибоначчи очень медленный, переделайте его на быстрый вариант, замените его здесь и убедитесь что стало быстрее
+    cout<<fibbonachiFast(10)<<endl;
+    cout<<fibbonachiFast(40)<<endl; // быстро работает
+    cout<<fibbonachiFast(1000000000)<<endl; // тут тоже быстро,но,есстественно,переполняется
 }
 
 TEST(lesson01, findX1) {
@@ -75,5 +77,17 @@ TEST(lesson01, solveSquare1) {
     GTEST_ASSERT_EQ(xs.size(), 1); // сверяем что найден ровно один корень
     double x0 = xs[0];
     GTEST_ASSERT_EQ(x0, 1.5); // сверяем что найденный корень правильный
+    xs = solveSquare(1, 2, 1);
+    GTEST_ASSERT_EQ(xs.size(), 1); // сверяем что найден ровно один корень
+    x0 = xs[0];
+    GTEST_ASSERT_EQ(x0, -1.0); // сверяем что найденный корень правильный
+    xs = solveSquare(1, 0, 1);
+    GTEST_ASSERT_EQ(xs.size(), 0); // сверяем что найден ровно один корень
+    xs = solveSquare(1,-3,2);
+    GTEST_ASSERT_EQ(xs.size(), 2); // сверяем что найден ровно один корень
+    x0 = xs[0];
+    double x1=xs[1];
+    GTEST_ASSERT_EQ(x0, 1.0); // сверяем что найденный корень правильный
+    GTEST_ASSERT_EQ(x1, 2.0); // сверяем что найденный корень правильный
 }
 

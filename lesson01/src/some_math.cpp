@@ -31,18 +31,19 @@ vector<vector<int> > po(vector<vector<int> > v, int n) {
 int fibbonachiFast(int n) {
     // 04 реализуйте быструю функцию Фибоначчи с использованием std::vector
     if (n == 0) return 0;
+    if(n==1) return 1;
     vector<vector<int> > v;
     v = {{1, 1},
          {1, 0}};
-    vector<vector<int> > u = po(v, n);
+    vector<vector<int> > u = po(v, n-1);
     return u[0][0];
 }
 
 double solveLinearAXB(double a, double b) {
     //  10 решите линейное уравнение a*x+b=0 а если решения нет - верните наибольшее значение double - найдите как это сделать в интернете по запросу "so cpp double max value" (so = stackoverflow = сайт где часто можно найти ответы на такие простые запросы), главное НЕ КОПИРУЙТЕ ПРОСТО ЧИСЛО, ПОЖАЛУЙСТААаа
     // если решений сколь угодно много - верните максимальное значение со знаком минус
-    const double md = 1e308; //???
-    if (a == 0 && b == 0) assert(false);
+    const double md = std::numeric_limits<double>::max(); //???
+    if (a == 0 && b == 0) return (-md);
     if (a == 0) return md;
     return (-b / a);
 }
@@ -52,7 +53,11 @@ std::vector<double> solveSquare(double a, double b, double c) {
     // если корня два - они должны быть упорядочены по возрастанию
     std::vector<double> res;
     // чтобы добавить в вектор элемент - нужно вызвать у него метод push_back:
-    assert(a != 0);
+    if(a==0)
+    {
+        if(b==0) return res;
+        else return {-c/b};
+    }
     if (b * b == (4 * a * c)) {
         res.push_back((-b) / (2 * a));
         return res;
