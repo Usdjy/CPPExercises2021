@@ -4,7 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <random>
-#include "time.h"
+#include <ctime>
 #include "helper_functions.h"
 
 #include <opencv2/highgui.hpp> // подключили часть библиотеки OpenCV, теперь мы можем читать и сохранять картинки
@@ -85,6 +85,8 @@ void task2() {
 }
 vector <pair<int,int> > allmouseclicks;
 bool isinverted=false;
+bool ban[256][256][256];
+cv::Mat image1;
 struct MyVideoContent {
     cv::Mat frame;
     int lastClickX;
@@ -101,6 +103,28 @@ void onMouseClick(int event, int x, int y, int flags, void *pointerToMyVideoCont
     if (event == cv::EVENT_LBUTTONDOWN) { // если нажата левая кнопка мыши
         std::cout << "Left click at x=" << x << ", y=" << y << std::endl;
         allmouseclicks.push_back({x,y});
+        cv::Vec3b color=image1.at<cv::Vec3b>(y,x);
+        int blue=color[0];int green=color[1];int red=color[2];
+        cout<<blue<<' '<<green<<' '<<red<<endl;
+        for(int i=0;i<256;++i)
+        {
+            int val1=abs(i-blue);
+            if(val1>40) continue;
+            cout<<val1<<" val1 "<<endl;
+            for(int j=0;j<256;++j)
+            {
+                int val2=val1+abs(j-green);
+                if(val2>40) continue;
+                for(int k=0;k<256;++k)
+                {
+                    int val3=val2+abs(k-red);
+                    if(val3<=40)
+                    {
+                        ban[i][j][k]=true;
+                    }
+                }
+            }
+        }
     }
     else if (event == cv::EVENT_RBUTTONDOWN) {
         isinverted^=1;
@@ -129,7 +153,7 @@ void task3() {
         bool isSuccess = video.read(content.frame); // считываем из видео очередной кадр
         rassert(isSuccess, 348792347819); // проверяем что считывание прошло успешно
         rassert(!content.frame.empty(), 3452314124643); // проверяем что кадр не пустой
-        cv::Mat image1=content.frame.clone();
+        image1=content.frame.clone();
         //cout<<" new image"<<endl;
         for(auto h:allmouseclicks)
         {
@@ -165,9 +189,8 @@ void task4() {
         bool isSuccess = video.read(content.frame); // считываем из видео очередной кадр
         rassert(isSuccess, 348792347819); // проверяем что считывание прошло успешно
         rassert(!content.frame.empty(), 3452314124643); // проверяем что кадр не пустой
-        cv::Mat image1=content.frame.clone();
+        image1=content.frame.clone();
         //cout<<" new image"<<endl;
-        cout<<image1.rows<<' '<<image1.cols<<endl;
         vector <vector <cv::Vec3b> > image1all(image1.rows);
         for(auto &h:image1all) h.resize(image1.cols);
         for(int i=0;i<image1.rows;++i) {
@@ -177,9 +200,10 @@ void task4() {
         }
         for(int i=0;i<image1.rows;++i) {
             for(int j=0;j<image1.cols;++j) {
-                bool isclose=false;
                 cv::Vec3b &color = image1.at<cv::Vec3b>(i,j);
-                for(auto h:allmouseclicks) {
+                bool isclose=ban[color[0]][color[1]][color[2]];
+                /*for(auto h:allmouseclicks) {
+                    //cout<<i<<" i "<<j<<" j "<<endl;
                     //cout<<h.first<<' '<<h.second<<endl;
                     cv::Vec3b color2 = image1all[h.second][h.first];
                     if(abs(color[0]-color2[0])>40) continue;
@@ -188,7 +212,7 @@ void task4() {
                     {
                         isclose=true;
                     }
-                }
+                }*/
                 if(isclose)
                 {
                     cv::Vec3b colornew=largeCastle.at<cv::Vec3b>(i*largeCastle.rows/image1.rows,j*largeCastle.cols/image1.cols);
@@ -221,13 +245,86 @@ void task4() {
     // а как бы вы справились с тем чтобы из фотографии с единорогом и фоном удалить фон зная как выглядит фон?
     // а может сделать тот же трюк с вебкой - выйти из вебки в момент запуска программы, и первый кадр использовать как кадр-эталон с фоном который надо удалять (делать прозрачным)
 }
+void task4maskfon() {
+    cv::VideoCapture video(0);
+
+    rassert(video.isOpened(), 3423948392481); // проверяем что видео получилось открыть
+    MyVideoContent content;
+    bool isSuccess = video.read(content.frame); // считываем из видео очередной кадр
+    rassert(isSuccess, 6579849545); // проверяем что считывание прошло успешно
+    cv::Mat image0=content.frame.clone();
+    cv::Mat largeCastle = cv::imread("lesson03/data/castle_large.jpg").clone();
+    while (video.isOpened()) { // пока видео не закрылось - бежим по нему
+        bool isSuccess = video.read(content.frame); // считываем из видео очередной кадр
+        rassert(isSuccess, 348792347819); // проверяем что считывание прошло успешно
+        rassert(!content.frame.empty(), 3452314124643); // проверяем что кадр не пустой
+        image1=content.frame.clone();
+        //cout<<" new image"<<endl;
+        vector <vector <cv::Vec3b> > image1all(image1.rows);
+        for(auto &h:image1all) h.resize(image1.cols);
+        for(int i=0;i<image1.rows;++i) {
+            for (int j = 0; j < image1.cols; ++j) {
+                image1all[i][j] = image1.at<cv::Vec3b>(i, j);
+            }
+        }
+        for(int i=0;i<image1.rows;++i) {
+            for(int j=0;j<image1.cols;++j) {
+                cv::Vec3b &color = image1.at<cv::Vec3b>(i,j);
+                cv::Vec3b color0=image0.at<cv::Vec3b>(i,j);
+                int val=abs(color[0]-color0[0])+abs(color[1]-color0[1])+abs(color[2]-color0[2]);
+                //if(i==10 && j==10) cout<<(int) color[0]<<' '<<(int) color[1]<<' '<<(int) color[2]<<' '<<(int) color0[0]<<' '<<(int) color0[1]<<' '<<(int) color0[2]<<endl;
+                bool isclose=(val<=150);
+                /*for(auto h:allmouseclicks) {
+                    //cout<<i<<" i "<<j<<" j "<<endl;
+                    //cout<<h.first<<' '<<h.second<<endl;
+                    cv::Vec3b color2 = image1all[h.second][h.first];
+                    if(abs(color[0]-color2[0])>40) continue;
+                    int val=abs(color[0]-color2[0])+abs(color[1]-color2[1])+abs(color[2]-color2[2]);
+                    if(val<40)
+                    {
+                        isclose=true;
+                    }
+                }*/
+                if(isclose)
+                {
+                    cv::Vec3b colornew=largeCastle.at<cv::Vec3b>(i*largeCastle.rows/image1.rows,j*largeCastle.cols/image1.cols);
+                    //if(isinverted) {colornew[0]=255-colornew[0];colornew[1]=255-colornew[1];colornew[2]=255-colornew[2];}
+                    color=colornew;
+                }
+            }
+        }
+        if(isinverted)
+        {
+            image1=invertImageColors(image1);
+        }
+        cv::imshow("video", image1); // покаызваем очередной кадр в окошке
+        cv::setMouseCallback("video", onMouseClick, &content); // делаем так чтобы функция выше (onMouseClick) получала оповещение при каждом клике мышкой
+
+        int key = cv::waitKey(10);
+        if(key==32) exit(0);
+        if(key==27) exit(0);
+
+        // сохраняйте в вектор (std::vector<int>) координаты всех кликов мышки
+        //  и перед отрисовкой очередного кадра - заполняйте все уже прокликанные пиксели красным цветом
+        // сделайте по правому клику мышки переключение в режим "цвета каждого кадра инвертированы" (можете просто воспользоваться функцией invertImageColors)
+    }
+    // при клике мышки - определяется цвет пикселя в который пользователь кликнул, теперь этот цвет считается прозрачным (как было с черным цветом у единорога)
+    // и теперь перед отрисовкой очередного кадра надо подложить вместо прозрачных пикселей - пиксель из отмасштабированной картинки замка (castle_large.jpg)
+
+    // попробуйте сделать так чтобы цвет не обязательно совпадал абсолютно для прозрачности (чтобы все пиксели похожие на тот что был кликнут - стали прозрачными, а не только идеально совпадающие)
+
+    // подумайте, а как бы отмаскировать фон целиком несмотря на то что он разноцветный?
+    // а как бы вы справились с тем чтобы из фотографии с единорогом и фоном удалить фон зная как выглядит фон?
+    // а может сделать тот же трюк с вебкой - выйти из вебки в момент запуска программы, и первый кадр использовать как кадр-эталон с фоном который надо удалять (делать прозрачным)
+}
 
 int main() {
     try {
        // task1();
        // task2();
      // task3();
-       task4();
+      // task4();
+       task4maskfon();
         return 0;
     } catch (const std::exception &e) {
         std::cout << "Exception! " << e.what() << std::endl;
