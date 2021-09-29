@@ -1,8 +1,12 @@
+#pragma GCC optimize("O3","Ofast","unroll-loops")
+#pragma GCC target("avx2")
 #include "helper_functions.h"
 
 #include <libutils/rasserts.h>
 #include <random>
 #include <iostream>
+#include <vector>
+#include <algorithm>
 using namespace std;
 using namespace cv;
 cv::Mat getanime(cv::Mat object, cv::Mat largeBackground,int n)
@@ -166,4 +170,49 @@ cv::Mat blackrandom(cv::Mat image1) {
         }
     }
     return image;
+}
+Mat tuda(Mat image,int c,int d)
+{
+    int a=image.rows;
+    int b=image.cols;
+    Mat image1(c, d, CV_8UC3, Scalar(0, 0, 0));
+    for(int i=0;i<c;++i)
+    {
+        for(int j=0;j<d;++j)
+        {
+            Vec3b &color=image1.at<cv::Vec3b>(i, j);
+            Vec3b color2=image.at<cv::Vec3b>((i*a)/c, (j*b)/d);
+            color=color2;
+        }
+    }
+    return image1;
+}
+vector <vector <int> > go(vector <vector <int> > v,int r,double c,int coef)
+{
+    vector <vector <int> > ans=v;
+    int n=v.size();int m=v[0].size();
+    for(int i=0;i<n;++i)
+    {
+        for(int j=0;j<m;++j)
+        {
+            int u1=0;
+            int u2=0;
+            for(int dx=(-r);dx<=r;++dx)
+            {
+                for(int dy=(-r);dy<=r;++dy)
+                {
+                    int val=(dx*dx+dy*dy);
+                    if(val>(r*r)) continue;
+                    int o1=(i+dx*coef);int o2=(j+dy*coef);
+                    if(o1<n && o2<m && o1>=0 && o2>=0)
+                    {
+                        u1+=v[o1][o2];
+                        ++u2;
+                    }
+                }
+            }
+            ans[i][j]=(u1>=(u2*c));
+        }
+    }
+    return ans;
 }
