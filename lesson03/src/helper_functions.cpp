@@ -216,3 +216,132 @@ vector <vector <int> > go(vector <vector <int> > v,int r,double c,int coef)
     }
     return ans;
 }
+vector <vector <int> > go2(vector <vector <int> > v,int r,double c,int coef)
+{
+    vector <vector <int> > ans=v;
+    int n=v.size();int m=v[0].size();
+    for(int i=0;i<n;i+=r)
+    {
+        for(int j=0;j<m;j+=r)
+        {
+            int val=0;int val1=0;
+            for(int k=0;k<r;++k)
+            {
+                for(int l=0;l<r;++l) {
+                    if ((i + k) < n && (j + l) < m)
+                    {
+                        val+=v[i][j];
+                        ++val1;
+                    }
+                }
+            }
+            for(int k=0;k<r;++k)
+            {
+                for(int l=0;l<r;++l) {
+                    if ((i + k) < n && (j + l) < m)
+                    {
+                        ans[i+k][j+l]=(val>=(val1*c));
+                    }
+                }
+            }
+        }
+    }
+    return ans;
+}
+vector <vector <int> > go3(vector <vector <int> > v,int r,double c,int coef)
+{
+    int n=v.size();int m=v[0].size();
+    vector <vector <double> > ans(n);
+    for(int i=0;i<n;++i)
+    {
+        ans[i].resize(m);
+        for(int j=0;j<m;++j)
+        {
+            ans[i][j]=v[i][j];
+        }
+    }
+    for(int i=1;i<n;++i)
+    {
+        for(int j=1;j<m;++j)
+        {
+            ans[i][j]=(2*ans[i][j]+ans[i][j-1]+ans[i-1][j])/4;
+        }
+    }
+    for(int i=0;i<n-1;++i)
+    {
+        for(int j=0;j<m-1;++j)
+        {
+            ans[i][j]=(2*ans[i][j]+ans[i+1][j]+ans[i][j+1])/4;
+        }
+    }
+    for(int i=1;i<n;++i)
+    {
+        for(int j=0;j<m-1;++j)
+        {
+            ans[i][j]=(2*ans[i][j]+ans[i-1][j]+ans[i][j+1])/4;
+        }
+    }
+    for(int i=0;i<n-1;++i)
+    {
+        for(int j=1;j<m;++j)
+        {
+            ans[i][j]=(2*ans[i][j]+ans[i+1][j]+ans[i][j-1])/4;
+        }
+    }
+    vector <vector <int> > res(n);
+    for(int i=0;i<n;++i) {res[i].resize(m);for(int j=0;j<m;++j) res[i][j]=(ans[i][j]>=c);}
+    return res;
+}
+vector <int> parent;
+vector <bool> active;
+vector <int> sz;
+int get(int x)
+{
+    if(parent[x]==(-1)) return x;
+    int ans=get(parent[x]);
+    parent[x]=ans;
+    return ans;
+}
+void merg(int x,int y)
+{
+    x=get(x);y=get(y);
+    if(x==y) return;
+    parent[x]=y;if(active[x]) active[y]=true;sz[y]+=sz[x];
+}
+vector <vector <int> > godsu(vector <vector <int> > v,int minsz) {
+    int n = v.size();
+    int m = v[0].size();
+    parent.resize(n * m);
+    active.resize(n * m);
+    sz.resize(n*m);
+    for(auto &h:sz) h=1;
+    for (auto &h:parent) h = (-1);
+    for (int i = 0; i < (n * m); ++i) {
+        active[i] = (i / m == 0 || i / m == (n - 1) || i % m == 0 || i % m == (m - 1));
+    }
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            if ((i + 1) < n && j < m && v[i][j] == v[i + 1][j]) {
+                merg(i * m + j, (i + 1) * m + j);
+            }
+            if (i < n && (j + 1) < m && v[i][j] == v[i][j + 1]) {
+                merg(i * m + j, i * m + (j + 1));
+            }
+        }
+    }
+    vector<vector<int> > ans;
+    ans.resize(n);
+    for (auto &h:ans) h.resize(m);
+    for (int i = 0; i < n; ++i) for (int j = 0; j < m; ++j)
+        {
+        if(v[i][j]==0)
+        {
+            ans[i][j]=(sz[get(i*m+j)]<minsz);
+        }
+        else
+        {
+            ans[i][j]=active[get(i*m+j)];
+        }
+        }
+    return ans;
+}

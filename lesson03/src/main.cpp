@@ -8,7 +8,8 @@
 #include "helper_functions.h"
 #include <chrono>
 #include <thread>
-
+#include "morphology.h"
+#include "disjoint_set.h"
 #include <opencv2/highgui.hpp> // подключили часть библиотеки OpenCV, теперь мы можем читать и сохранять картинки
 using namespace std;
 using namespace cv;
@@ -181,6 +182,7 @@ void task3() {
 }
 
 void task4() {
+    //DisjointSet d(5);
     cv::VideoCapture video(0);
 
     rassert(video.isOpened(), 3423948392481); // проверяем что видео получилось открыть
@@ -332,7 +334,7 @@ void lesson4tasks()
 }
 void task4maskfonk() {
     cv::VideoCapture video(0);
-
+    freopen("lesson03/resultsData/mylogfile.txt","w",stdout);
     rassert(video.isOpened(), 3423948392481); // проверяем что видео получилось открыть
     MyVideoContent content;
     bool isSuccess = video.read(content.frame); // считываем из видео очередной кадр
@@ -343,11 +345,14 @@ void task4maskfonk() {
     cv::Mat largeCastle = cv::imread("lesson03/data/dima.jpg").clone();
     std::this_thread::sleep_for(timespan);
     vector <vector <int> > v;
+    cv::Mat image2(image0.rows,image0.cols,CV_8UC3,Scalar(0,0,0));
     int eps=50;
     int cyc=0;
+    vector <vector <int> > v3;v3.resize(image0.rows);
+    for(auto &h:v3) h.resize(image0.cols);
     while (video.isOpened()) { // пока видео не закрылось - бежим по нему
-        ++cyc;
-        string h=to_string(cyc);
+            ++cyc;
+        string h=to_string(cyc%300);
         while(h.size()<3) h.insert(h.begin(),'0');
         string filename="lesson03/data/myvideo_"+h+".jpg";
         largeCastle = cv::imread(filename).clone();
@@ -369,28 +374,24 @@ void task4maskfonk() {
             for (int j = 0; j < image1.cols; ++j) {
                 cv::Vec3b &color = image1.at<cv::Vec3b>(i, j);
                 cv::Vec3b color0 = image0.at<cv::Vec3b>(i, j);
+                cv::Vec3b &color2= image2.at<cv::Vec3b> (i,j);
                 int val = abs(color[0] - color0[0]) + abs(color[1] - color0[1]) + abs(color[2] - color0[2]);
+                v3[i][j]=val;
                 //if(i==10 && j==10) cout<<(int) color[0]<<' '<<(int) color[1]<<' '<<(int) color[2]<<' '<<(int) color0[0]<<' '<<(int) color0[1]<<' '<<(int) color0[2]<<endl;
+                color2[0]=val;color2[1]=0;color2[2]=0;
                 bool isclose = (val <= eps);
                 v[i][j] = isclose;
-                /*for(auto h:allmouseclicks) {
-                    //cout<<i<<" i "<<j<<" j "<<endl;
-                    //cout<<h.first<<' '<<h.second<<endl;
-                    cv::Vec3b color2 = image1all[h.second][h.first];
-                    if(abs(color[0]-color2[0])>40) continue;
-                    int val=abs(color[0]-color2[0])+abs(color[1]-color2[1])+abs(color[2]-color2[2]);
-                    if(val<40)
-                    {
-                        isclose=true;
-                    }
-                }*/
-                /*if (isclose) {
-                    cv::Vec3b colornew = largeCastle.at<cv::Vec3b>(i * largeCastle.rows / image1.rows,
-                                                                   j * largeCastle.cols / image1.cols);
-                    //if(isinverted) {colornew[0]=255-colornew[0];colornew[1]=255-colornew[1];colornew[2]=255-colornew[2];}
-                    color = colornew;
-                }*/
+                if(cyc%100==0) {
+                    cout << isclose << ' ';
+                }
             }
+            if(cyc%100==0) {
+                cout << endl;
+            }
+        }
+        if(cyc%100==0)
+        {
+            cout<<cyc<<" cyc "<<endl;
         }
         vector <vector <int> > v1=go(v,5,0.5,3);
         for(int i=0;i<image1.rows;++i) {
@@ -431,6 +432,169 @@ void task4maskfonk() {
     // а как бы вы справились с тем чтобы из фотографии с единорогом и фоном удалить фон зная как выглядит фон?
     // а может сделать тот же трюк с вебкой - выйти из вебки в момент запуска программы, и первый кадр использовать как кадр-эталон с фоном который надо удалять (делать прозрачным)
 }
+void task4maskultramegafonk() {
+    cout<<" yhtgr "<<endl;
+    cv::VideoCapture video(0);
+    freopen("lesson03/resultsData/mylogfile.txt","w",stdout);
+    rassert(video.isOpened(), 3423948392481); // проверяем что видео получилось открыть
+    MyVideoContent content;
+    bool isSuccess = video.read(content.frame); // считываем из видео очередной кадр
+    rassert(isSuccess, 6579849545); // проверяем что считывание прошло успешно
+    std::chrono::milliseconds timespan(200); // or whatever
+    std::this_thread::sleep_for(timespan);
+    vector <vector <vector <int> > > ourbackground;
+    double tm1=clock();
+    cv::Mat image0=content.frame.clone();
+    ourbackground.resize(image0.rows);{for(auto &h:ourbackground) {h.resize(image0.cols);for(auto &h1:h) h1={0,0,0};}}
+    cv::Mat largeCastle = cv::imread("lesson03/data/dima.jpg").clone();
+    vector <vector <int> > v;
+    cv::Mat image2(image0.rows,image0.cols,CV_8UC3,Scalar(0,0,0));
+    int eps=50;
+    int cyc=0;
+    cv::Mat dota=cv::imread("lesson03/data/dota2.jpg").clone();
+    cv::Mat dota2=tuda(dota,100,100);
+    vector <vector <int> > v3;v3.resize(image0.rows);
+    for(auto &h:v3) h.resize(image0.cols);
+    int cnt=0;
+    bool flag=false;
+    while (video.isOpened()) { // пока видео не закрылось - бежим по нему
+        double tm2=clock();
+        if((tm2-tm1)<1.0*CLOCKS_PER_SEC)
+        {
+            ++cnt;
+            image0=content.frame.clone();
+            for(int i=0;i<image0.rows;++i)
+            {
+                for(int j=0;j<image0.cols;++j)
+                {
+                    cv::Vec3b color0 = image0.at<cv::Vec3b>(i, j);
+                    for(int k=0;k<3;++k)
+                    ourbackground[i][j][k]+=color0[k];
+                }
+            }
+            continue;
+        }
+        else if(!flag)
+        {
+            flag=true;
+            for(int i=0;i<image0.rows;++i)
+            {
+                for(int j=0;j<image0.cols;++j)
+                {
+                    for(int k=0;k<3;++k)
+                    ourbackground[i][j][k]/=cnt;
+                }
+            }
+            continue;
+        }
+        ++cyc;
+        string h=to_string(cyc%300);
+        while(h.size()<3) h.insert(h.begin(),'0');
+        string filename="lesson03/data/myvideo_"+h+".jpg";
+        largeCastle = cv::imread(filename).clone();
+        bool isSuccess = video.read(content.frame); // считываем из видео очередной кадр
+        rassert(isSuccess, 348792347819); // проверяем что считывание прошло успешно
+        rassert(!content.frame.empty(), 3452314124643); // проверяем что кадр не пустой
+        image1=content.frame.clone();
+        //cout<<" new image"<<endl;
+        vector <vector <cv::Vec3b> > image1all(image1.rows);
+        for(auto &h:image1all) h.resize(image1.cols);
+        for(int i=0;i<image1.rows;++i) {
+            for (int j = 0; j < image1.cols; ++j) {
+                image1all[i][j] = image1.at<cv::Vec3b>(i, j);
+            }
+        }
+        long long f=0;
+        v.resize(image1.rows);
+        for(int i=0;i<image1.rows;++i) {
+            v[i].resize(image1.cols);
+            for (int j = 0; j < image1.cols; ++j) {
+                cv::Vec3b &color = image1.at<cv::Vec3b>(i, j);
+                vector <int> color0=ourbackground[i][j];
+                cv::Vec3b &color2= image2.at<cv::Vec3b> (i,j);
+                int val = abs(color[0] - color0[0]) + abs(color[1] - color0[1]) + abs(color[2] - color0[2]);
+                v3[i][j]=val;
+                f+=(val*val);
+            }
+            if(cyc%100==0) {
+                cout << endl;
+            }
+        }
+        cout<<f<<" f "<<endl;
+        eps=(sqrt(f/(image1.rows*image1.cols))+40)/2;
+        cout<<eps<<" eps "<<endl;
+        if(cyc%100==0)
+        {
+            cout<<cyc<<" cyc "<<endl;
+        }
+        for(int i=0;i<image1.rows;++i) {
+            for (int j = 0; j < image1.cols; ++j) {
+                cv::Vec3b &color = image1.at<cv::Vec3b>(i, j);
+                vector <int> color0=ourbackground[i][j];
+                cv::Vec3b &color2= image2.at<cv::Vec3b> (i,j);
+                int val = abs(color[0] - color0[0]) + abs(color[1] - color0[1]) + abs(color[2] - color0[2]);
+                v3[i][j]=val;
+                //if(i==10 && j==10) cout<<(int) color[0]<<' '<<(int) color[1]<<' '<<(int) color[2]<<' '<<(int) color0[0]<<' '<<(int) color0[1]<<' '<<(int) color0[2]<<endl;
+                color2[0]=val;color2[1]=0;color2[2]=0;
+                bool isclose = (val <= eps);
+                v[i][j] = isclose;
+            }
+            if(cyc%100==0) {
+                cout << endl;
+            }
+        }
+        if(cyc%100==0)
+        {
+            cout<<cyc<<" cyc "<<endl;
+        }
+        for(int i=0;i<image1.rows;++i) {
+            for (int j = 0; j < image1.cols; ++j) {
+                cv::Vec3b &color = image1.at<cv::Vec3b>(i, j);
+                vector <int> color0=ourbackground[i][j];
+                cv::Vec3b &color2= image2.at<cv::Vec3b> (i,j);
+                int val = abs(color[0] - color0[0]) + abs(color[1] - color0[1]) + abs(color[2] - color0[2]);
+                v3[i][j]=val;
+                //if(i==10 && j==10) cout<<(int) color[0]<<' '<<(int) color[1]<<' '<<(int) color[2]<<' '<<(int) color0[0]<<' '<<(int) color0[1]<<' '<<(int) color0[2]<<endl;
+                color2[0]=val;color2[1]=0;color2[2]=0;
+                bool isclose = (val <= eps);
+                v[i][j] = isclose;
+                if(cyc%100==0) {
+                    cout << isclose << ' ';
+                }
+            }
+            if(cyc%100==0) {
+                cout << endl;
+            }
+        }
+        vector <vector <int> > v1=go(godsu(v,100),5,0.5,3);
+        for(int i=0;i<image1.rows;++i) {
+            v[i].resize(image1.cols);
+            for (int j = 0; j < image1.cols; ++j) {
+                cv::Vec3b &color = image1.at<cv::Vec3b>(i, j);
+                cv::Vec3b color0 = image0.at<cv::Vec3b>(i, j);
+                bool isclose=v1[i][j];
+                if (isclose) {
+                    cv::Vec3b colornew = largeCastle.at<cv::Vec3b>(i * largeCastle.rows / image1.rows,
+                                                                   j * largeCastle.cols / image1.cols);
+                    //if(isinverted) {colornew[0]=255-colornew[0];colornew[1]=255-colornew[1];colornew[2]=255-colornew[2];}
+                    color = colornew;
+                }
+            }
+        }
+        if(isinverted)
+        {
+            image1=invertImageColors(image1);
+        }
+        for(int i=0;i<dota2.rows;++i) for(int j=0;j<dota2.cols;++j) {cv::Vec3b &color = image1.at<cv::Vec3b>(image1.rows-i-1, j);cv::Vec3b color2 = dota2.at<cv::Vec3b>(i, j);color=color2;}
+        cv::imshow("video", image1); // покаызваем очередной кадр в окошке
+        cv::setMouseCallback("video", onMouseClick, &content); // делаем так чтобы функция выше (onMouseClick) получала оповещение при каждом клике мышкой
+
+        int key = cv::waitKey(10);
+        if(key==32) exit(0);
+        if(key==27) exit(0);
+
+    }
+}
 int main() {
     try {
        // task1();
@@ -439,7 +603,8 @@ int main() {
        //task4();
      // task4maskfon();
      //lesson4tasks();
-        task4maskfonk();
+       // task4maskfonk();
+        task4maskultramegafonk();
         return 0;
     } catch (const std::exception &e) {
         std::cout << "Exception! " << e.what() << std::endl;

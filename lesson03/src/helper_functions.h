@@ -18,3 +18,9 @@ cv::Mat blackrandom(cv::Mat object);
 cv::Mat tuda(cv::Mat image,int c,int d);
 
 vector <vector <int> > go(vector <vector <int> > v,int r,double c,int coef);
+
+vector <vector <int> > go2(vector <vector <int> > v,int r,double c,int coef);
+
+vector <vector <int> > go3(vector <vector <int> > v,int r,double c,int coef);
+
+vector <vector <int> > godsu(vector <vector <int> > v,int minsz);
