@@ -433,6 +433,7 @@ void task4maskfonk() {
     // а может сделать тот же трюк с вебкой - выйти из вебки в момент запуска программы, и первый кадр использовать как кадр-эталон с фоном который надо удалять (делать прозрачным)
 }
 void task4maskultramegafonk() {
+    isinverted=false;
     cout<<" yhtgr "<<endl;
     cv::VideoCapture video(0);
     freopen("lesson03/resultsData/mylogfile.txt","w",stdout);
@@ -440,8 +441,8 @@ void task4maskultramegafonk() {
     MyVideoContent content;
     bool isSuccess = video.read(content.frame); // считываем из видео очередной кадр
     rassert(isSuccess, 6579849545); // проверяем что считывание прошло успешно
-    std::chrono::milliseconds timespan(200); // or whatever
-    std::this_thread::sleep_for(timespan);
+    //std::chrono::milliseconds timespan(200); // or whatever
+   // std::this_thread::sleep_for(timespan);
     vector <vector <vector <int> > > ourbackground;
     double tm1=clock();
     cv::Mat image0=content.frame.clone();
@@ -459,19 +460,25 @@ void task4maskultramegafonk() {
     bool flag=false;
     while (video.isOpened()) { // пока видео не закрылось - бежим по нему
         double tm2=clock();
-        if((tm2-tm1)<1.0*CLOCKS_PER_SEC)
+        cerr<<tm2<<" tm2 "<<endl;
+        if((tm2-tm1)<5.0*CLOCKS_PER_SEC)
         {
             ++cnt;
-            image0=content.frame.clone();
-            for(int i=0;i<image0.rows;++i)
+            cv::Mat image3=content.frame.clone();
+            for(int i=0;i<image3.rows;++i)
             {
-                for(int j=0;j<image0.cols;++j)
+                for(int j=0;j<image3.cols;++j)
                 {
-                    cv::Vec3b color0 = image0.at<cv::Vec3b>(i, j);
+                    cv::Vec3b &color0 = image3.at<cv::Vec3b>(i, j);
+                    if(i==0 && j==0)
+                    {
+                        cerr<<(int) color0[0]<<' '<<(int) color0[1]<<' '<<(int) color0[2]<<endl;
+                    }
                     for(int k=0;k<3;++k)
                     ourbackground[i][j][k]+=color0[k];
                 }
             }
+            cv::imshow("mid",image3);
             continue;
         }
         else if(!flag)
@@ -507,8 +514,8 @@ void task4maskultramegafonk() {
         long long f=0;
         v.resize(image1.rows);
         for(int i=0;i<image1.rows;++i) {
-            v[i].resize(image1.cols);
-            for (int j = 0; j < image1.cols; ++j) {
+            v[i].resize(image1.cols);}
+            /*for (int j = 0; j < image1.cols; ++j) {
                 cv::Vec3b &color = image1.at<cv::Vec3b>(i, j);
                 vector <int> color0=ourbackground[i][j];
                 cv::Vec3b &color2= image2.at<cv::Vec3b> (i,j);
@@ -521,7 +528,7 @@ void task4maskultramegafonk() {
             }
         }
         cout<<f<<" f "<<endl;
-        eps=(sqrt(f/(image1.rows*image1.cols))+40)/2;
+        eps=(sqrt(f/(image1.rows*image1.cols))+40)/2;*/
         cout<<eps<<" eps "<<endl;
         if(cyc%100==0)
         {
@@ -548,8 +555,12 @@ void task4maskultramegafonk() {
             cout<<cyc<<" cyc "<<endl;
         }
         for(int i=0;i<image1.rows;++i) {
-            for (int j = 0; j < image1.cols; ++j) {
+            for (int j = 0; j < image1.cols; ++j){
                 cv::Vec3b &color = image1.at<cv::Vec3b>(i, j);
+                if(i==0 && j==0)
+                {
+                    cerr<<(int) color[0]<<' '<<(int) color[1]<<' '<<(int) color[2]<<" color of image1 "<<endl;
+                }
                 vector <int> color0=ourbackground[i][j];
                 cv::Vec3b &color2= image2.at<cv::Vec3b> (i,j);
                 int val = abs(color[0] - color0[0]) + abs(color[1] - color0[1]) + abs(color[2] - color0[2]);
@@ -586,7 +597,7 @@ void task4maskultramegafonk() {
             image1=invertImageColors(image1);
         }
         for(int i=0;i<dota2.rows;++i) for(int j=0;j<dota2.cols;++j) {cv::Vec3b &color = image1.at<cv::Vec3b>(image1.rows-i-1, j);cv::Vec3b color2 = dota2.at<cv::Vec3b>(i, j);color=color2;}
-        cv::imshow("video", image1); // покаызваем очередной кадр в окошке
+        cv::imshow("video", image2); // покаызваем очередной кадр в окошке
         cv::setMouseCallback("video", onMouseClick, &content); // делаем так чтобы функция выше (onMouseClick) получала оповещение при каждом клике мышкой
 
         int key = cv::waitKey(10);
