@@ -461,9 +461,11 @@ void task4maskultramegafonk() {
     while (video.isOpened()) { // пока видео не закрылось - бежим по нему
         double tm2=clock();
         cerr<<tm2<<" tm2 "<<endl;
-        if((tm2-tm1)<5.0*CLOCKS_PER_SEC)
+        if((tm2-tm1)<2.0*CLOCKS_PER_SEC)
         {
             ++cnt;
+            bool isSuccess = video.read(content.frame); // считываем из видео очередной кадр
+            rassert(isSuccess, 6579849545); // проверяем что считывание прошло успешно
             cv::Mat image3=content.frame.clone();
             for(int i=0;i<image3.rows;++i)
             {
@@ -478,7 +480,8 @@ void task4maskultramegafonk() {
                     ourbackground[i][j][k]+=color0[k];
                 }
             }
-            cv::imshow("mid",image3);
+            int key=cv::waitKey(10);
+            //cv::imshow("mid",image3);
             continue;
         }
         else if(!flag)
@@ -492,6 +495,7 @@ void task4maskultramegafonk() {
                     ourbackground[i][j][k]/=cnt;
                 }
             }
+            int key=cv::waitKey(10);
             continue;
         }
         ++cyc;
@@ -597,7 +601,7 @@ void task4maskultramegafonk() {
             image1=invertImageColors(image1);
         }
         for(int i=0;i<dota2.rows;++i) for(int j=0;j<dota2.cols;++j) {cv::Vec3b &color = image1.at<cv::Vec3b>(image1.rows-i-1, j);cv::Vec3b color2 = dota2.at<cv::Vec3b>(i, j);color=color2;}
-        cv::imshow("video", image2); // покаызваем очередной кадр в окошке
+        cv::imshow("video", image1); // покаызваем очередной кадр в окошке
         cv::setMouseCallback("video", onMouseClick, &content); // делаем так чтобы функция выше (onMouseClick) получала оповещение при каждом клике мышкой
 
         int key = cv::waitKey(10);
