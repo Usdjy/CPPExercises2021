@@ -533,7 +533,7 @@ void task4maskultramegafonk() {
         }
         cout<<f<<" f "<<endl;
         eps=(sqrt(f/(image1.rows*image1.cols))+40)/2;*/
-        cout<<eps<<" eps "<<endl;
+        cerr<<eps<<" eps "<<endl;
         if(cyc%100==0)
         {
             cout<<cyc<<" cyc "<<endl;

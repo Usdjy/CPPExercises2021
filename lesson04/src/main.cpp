@@ -55,7 +55,7 @@ void testingMyDisjointSets() {
 // 3) попробуйте добавить с помощью нажатия каких то двух кнопок "усиление/ослабление подавления фона"
 // 4) попробуйте поменять местами морфологию и СНМ
 // 5) попробуйте добавить настройку параметров морфологии и СНМ по нажатию кнопок (и выводите их значения в консоль)
-vector <pair<int,int> > allmouseclicks;
+/*vector <pair<int,int> > allmouseclicks;
 bool isinverted=false;
 bool ban[256][256][256];
 cv::Mat image1;
@@ -185,11 +185,11 @@ void backgroundMagickStreaming() {
         if(key==27) exit(0);
     }
 }
-
+*/
 int main() {
     try {
-    //    testingMyDisjointSets();
-   backgroundMagickStreaming();
+        testingMyDisjointSets();
+   //backgroundMagickStreaming();
         return 0;
     } catch (const std::exception &e) {
         std::cout << "Exception! " << e.what() << std::endl;
