@@ -3,4 +3,3 @@
 build
 cmake-build*
 opencv*.dll
-**/resultsData
