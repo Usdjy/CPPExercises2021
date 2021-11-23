@@ -72,6 +72,34 @@ cout<<"ok1 "<<endl;
         }
     }
  cv::imwrite("lesson07/resultsData/" + name + "_7_hough_normalized.png", hough);
+    vector <vector <bool> > big;vector <vector <bool> > mr;
+    int n=hough.rows;int m=hough.cols;
+    big.resize(n);for(int i=0;i<n;++i) big[i].resize(m);
+    mr.resize(n);for(int i=0;i<n;++i) mr[i].resize(m);
+    vector <vector <float> > a;a.resize(n);for(int i=0;i<n;++i) a[i].resize(m);
+    for(int i=0;i<n;++i) for(int j=0;j<m;++j) a[i][j]=hough.at<float>(i,j);
+    for(int i=0;i<n;++i) for(int j=0;j<m;++j) {
+            bool ok = true;
+            for (int i1 = (-1); i1 < 2; ++i1) for (int j1 = (-1);j1 < 2;++j1)
+            {
+                if ((i + i1) >= 0 && (i + i1) < n && (j + j1) >= 0 && (j + j1) < m) {
+                    ok = (ok && a[i][j] >= a[i + i1][j + j1]);
+                }
+            }
+            mr[i][j]=ok;
+        }
+    for(int i=0;i<hough.rows;++i) for(int j=0;j<hough.cols;++j) big[i][j]=(hough.at<float>(i,j)>127 && mr[i][j]);
+    for(int i=0;i<n;++i) for(int j=0;j<m;++j) if(big[i][j]) cout<<i<<' '<<j<<endl;
+    for(int i=0;i<n;++i) for(int j=0;j<m;++j)
+        {
+        if(big[i][j])
+        {
+            for(int k=(-3);k<4;++k) for(int l=(-3);l<4;++l) if((k || l) && (i+k)>=0 && (i+k)<n && (j+l)>=0 && (j+l)<m) big[i+k][j+l]=false;
+        }
+        }
+    cv::Mat points(n,m,CV_32FC1,0.0f);
+    for(int i=0;i<n;++i) for(int j=0;j<m;++j) if(big[i][j]) {cout<<i<<" i "<<j<<" j "<<endl;points.at<float>(i,j)=255.0;}
+    cv::imwrite("lesson07/resultsData/" + name + "_8_points.png", points);
 }
 
 
