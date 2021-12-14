@@ -5,8 +5,20 @@
 #include "hog.h"
 
 #include <opencv2/imgproc.hpp>
-
-
+using namespace std;
+typedef std::vector<double> HoG;
+/*ostream &operator<<(std::ostream& stream, HoG a)
+{
+    cout<<a.size()<<endl;
+    for(auto h:a) cout<<h<<' ';
+}*/
+void cou(HoG a)
+{
+    cout<<" HoG "<<endl;
+    cout<<a.size()<<endl;
+    for(auto h:a) cout<<h<<' ';
+    cout<<endl;
+}
 void test(std::string name) {
     std::cout << "Processing image " << name << ".jpg..." << std::endl;
 
@@ -15,11 +27,11 @@ void test(std::string name) {
     cv::Mat img = cv::imread(full_path);
     rassert(!img.empty(), 238982391080010);
 
-    // TODO реализуйте эту функцию:
+    //  реализуйте эту функцию:
     HoG hog = buildHoG(img);
 
-    // TODO реализуйте функцию "std::ostream &operator<<" чтобы можно было красиво печатать HoG в консоль:
-    std::cout << hog << std::endl;
+    //  реализуйте функцию "std::ostream &operator<<" чтобы можно было красиво печатать HoG в консоль:
+    cou(hog);
 }
 
 

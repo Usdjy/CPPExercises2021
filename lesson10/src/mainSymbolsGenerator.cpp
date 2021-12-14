@@ -1,7 +1,6 @@
 #include <filesystem>
 #include <iostream>
 #include <libutils/rasserts.h>
-
 #include "hog.h"
 
 #include <opencv2/imgproc.hpp>
@@ -9,8 +8,15 @@
 
 #define NSAMPLES_PER_LETTER 5
 #define LETTER_DIR_PATH std::string("lesson10/generatedData/letters")
-
-
+typedef HoG hogt;
+using namespace std;
+void cou(HoG a)
+{
+    cout<<" HoG "<<endl;
+    cout<<a.size()<<endl;
+    for(auto h:a) cout<<h<<' ';
+    cout<<endl;
+}
 int randFont() {
     int fonts[] = {
 //            cv::FONT_HERSHEY_SIMPLEX,
@@ -88,7 +94,6 @@ void generateAllLetters() {
         // Создаем папку для текущей буквы:
         std::string letterDir = LETTER_DIR_PATH + "/" + letter;
         std::filesystem::create_directory(letterDir);
-
         for (int sample = 1; sample <= NSAMPLES_PER_LETTER; ++sample) {
             std::string text = std::string("") + letter;
             cv::Mat img = generateImage(text);
@@ -101,7 +106,18 @@ void generateAllLetters() {
     }
 }
 
-
+HoG normalize(HoG a)
+{
+    double sum=0.0;for(auto h:a) sum+=h;
+    for(auto &h:a) h/=sum;
+    return a;
+}
+double dist(hogt a,hogt b)
+{
+    double ans=0;
+    for(int i=0;i<a.size();++i) ans+=abs(a[i]-b[i]);
+    return ans;
+}
 void experiment1() {
     // TODO Проведите эксперимент 1:
     // Пробежав в цикле по каждой букве - посчитайте насколько сильно она отличается между своими пятью примерами? (NSAMPLES_PER_LETTER)
@@ -114,16 +130,23 @@ void experiment1() {
     std::cout << "________Experiment 1________" << std::endl;
     for (char letter = 'a'; letter <= 'z'; ++letter) {
         std::string letterDir = LETTER_DIR_PATH + "/" + letter;
-
+        //cout<<letter<<" letter "<<endl;
+        vector <hogt> v;
         for (int sampleA = 1; sampleA <= NSAMPLES_PER_LETTER; ++sampleA) {
-            for (int sampleB = sampleA + 1; sampleB <= NSAMPLES_PER_LETTER; ++sampleB) {
                 cv::Mat a = cv::imread(letterDir + "/" + std::to_string(sampleA) + ".png");
-                cv::Mat b = cv::imread(letterDir + "/" + std::to_string(sampleB) + ".png");
+                //cv::Mat b = cv::imread(letterDir + "/" + std::to_string(sampleB) + ".png");
+                //cout<<" ytgrf "<<endl;
                 HoG hogA = buildHoG(a);
-                // TODO
-            }
+                //cout<<letter<<endl;
+                hogt ans=normalize(hogA);
+                //cou(ans);
+                v.push_back(ans);
         }
-//        std::cout << "Letter " << letter << ": max=" << distMax << ", avg=" << (distSum / distN) << std::endl;
+        double ma=0;double sum=0;int cnt=v.size()*(v.size()-1)/2;
+        //cout<<v.size()<<" v.size() "<<endl;
+        for(int i=0;i<v.size();++i) for(int j=(i+1);j<v.size();++j)
+            {ma=max(ma,dist(v[i],v[j]));sum+=dist(v[i],v[j]);}
+       std::cout << "Letter " << letter << ": max=" << ma << ", avg=" << (sum / cnt) << std::endl;
     }
 }
 
@@ -137,17 +160,41 @@ void experiment2() {
     //  - Можно ли с этим что-то сделать?
 
     std::cout << "________Experiment 2________" << std::endl;
+    vector <hogt> v[26];
+    for (char letter = 'a'; letter <= 'z'; ++letter) {
+        std::string letterDir = LETTER_DIR_PATH + "/" + letter;
+        for (int sampleA = 1; sampleA <= NSAMPLES_PER_LETTER; ++sampleA) {
+            cv::Mat a = cv::imread(letterDir + "/" + std::to_string(sampleA) + ".png");
+            v[letter-'a'].push_back(normalize(buildHoG(a)));
+        }
+    }
+    double dst[26][26];
     for (char letterA = 'a'; letterA <= 'z'; ++letterA) {
-        std::string letterDirA = LETTER_DIR_PATH + "/" + letterA;
-
         for (char letterB = 'a'; letterB <= 'z'; ++letterB) {
+            dst[letterA - 'a'][letterB - 'a'] = 0;
+            for (auto h1:v[letterA - 'a'])
+                for (auto h2:v[letterB - 'a'])
+                    dst[letterA - 'a'][letterB - 'a'] += dist(h1, h2);
+            dst[letterA - 'a'][letterB - 'a'] /= (v[letterA - 'a'].size() * v[letterB - 'a'].size());
             if (letterA == letterB) continue;
 
-            // TODO
+            //
         }
-
-//        std::cout << "Letter " << letterA << ": max=" << letterMax << "/" << distMax << ", min=" << letterMin << "/" << distMin << std::endl;
     }
+//        std::cout << "Letter " << letterA << ": max=" << letterMax << "/" << distMax << ", min=" << letterMin << "/" << distMin << std::endl;
+    for(int i=0;i<26;++i) {for(int j=0;j<26;++j) cout<<((int) (dst[i][j]*100))<<' '; cout<<endl;}
+    for(int i=0;i<26;++i)
+    {
+        int el1=(-1);int el2=(-1);
+        for(int j=0;j<26;++j)
+        {
+            if(i==j) continue;
+            if(el1==(-1) || dst[i][el1]<dst[i][j]) el1=j;
+            if(el2==(-1) || dst[i][el2]>dst[i][j]) el2=j;
+        }
+        cout<<(char) ('a'+i)<<": max=" <<(char) ('a'+el1)<<"/"<<dst[i][el1]<<",min="<<(char) ('a'+el2)<<"/"<<dst[i][el2]<<endl;
+    }
+
 }
 
 
