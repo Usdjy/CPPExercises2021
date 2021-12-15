@@ -2,9 +2,26 @@
 #include <iostream>
 #include <libutils/rasserts.h>
 
-#include "parseSymbols.h"
+#include "parsesymbolsold.h"
+#include <opencv2/imgproc.hpp>
+#include <filesystem>
+#include <iostream>
+#include <libutils/rasserts.h>
 
 #include <opencv2/imgproc.hpp>
+//#include "parsesymbols2.h"
+
+#include <filesystem>
+#include <filesystem>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+#include <libutils/rasserts.h>
+
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+
 using namespace std;
 using namespace cv;
 
@@ -67,7 +84,7 @@ void test(std::string name, std::string k) {
     cv::threshold(img, binary, 100, 255, cv::THRESH_BINARY);
     cv::imwrite(out_path + "/02_binary_thresholding.jpg", binary);
     cv::Mat binaryinv;
-    cv::threshold(img, binaryinv, 100, 255, cv::THRESH_BINARY_INV);
+    cv::adaptiveThreshold(img, binaryinv, 255, cv::BORDER_REPLICATE, cv::THRESH_BINARY_INV, 7, 10);
     cv::imwrite(out_path + "/02_binary_thresholding_inv.jpg", binaryinv);
     //  02 выполните адаптивный бинарный трешолдинг картинки, прочитайте документацию по cv::adaptiveThreshold
     cv::adaptiveThreshold(img, binary, 255, cv::BORDER_REPLICATE, cv::THRESH_BINARY, 7, 10);
@@ -77,21 +94,21 @@ void test(std::string name, std::string k) {
     cv::imwrite(out_path + "/03_binaryhold.jpg", binaryhold);
     //  03 чтобы буквы не разваливались на кусочки - морфологическое расширение (эрозия)
     cv::Mat binary_eroded;
-    cv::erode(binary, binary_eroded, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(4, 4)));
+    cv::erode(binaryinv, binary_eroded, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(4, 4)));
     cv::imwrite(out_path + "/04_erode.jpg", binary_eroded);
 
     //  03 заодно давайте посмотрим что делает морфологическое сужение (диляция)
     cv::Mat binary_dilated;
-    cv::dilate(binary, binary_dilated, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(4, 4)));
+    cv::dilate(binaryinv, binary_dilated, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(4, 4)));
     cv::imwrite(out_path + "/05_dilate.jpg", binary_dilated);
 
     //  04 дальше работаем с картинкой после морфологичесокго рашсирения или морфологического сжатия - на ваш выбор, подумайте и посмотрите на картинки
-   binary = binary_eroded;
+   binary = binary_dilated;
 
     //  05
     std::vector<std::vector<cv::Point>> contoursPoints; // по сути это вектор, где каждый элемент - это одна связная компонента-контур,
                                                         // а что такое компонента-контур? это вектор из точек (из пикселей)
-    cv::findContours(binary, contoursPoints, RETR_LIST, CHAIN_APPROX_NONE); // TODO подумайте, какие нужны два последних параметра? прочитайте документацию, после реализации отрисовки контура - поиграйте с этими параметрами чтобы посмотреть как меняется результат
+    cv::findContours(binary, contoursPoints, RETR_EXTERNAL, CHAIN_APPROX_NONE); // TODO подумайте, какие нужны два последних параметра? прочитайте документацию, после реализации отрисовки контура - поиграйте с этими параметрами чтобы посмотреть как меняется результат
     std::cout << "Contours: " << contoursPoints.size() << std::endl;
     cv::Mat imageWithContoursPoints = drawContours(img.rows, img.cols, contoursPoints); // TODO 06 реализуйте функцию которая покажет вам как выглядят найденные контура
     cv::imwrite(out_path + "/06_contours_points.jpg", imageWithContoursPoints);
@@ -133,12 +150,23 @@ void test(std::string name, std::string k) {
 //                                                           // если не белый, то что это значит? почему так? сколько в целом нашлось связных компонент?
     sort(v.begin(),v.end(),cmp);
     string text;
-    prep();
+    prep4();
+    int num=(-1);
     for(Rect h:v)
     {
-        text+=ch(binaryhold(h));
+        cout<<num<<" num "<<endl;
+        ++num;
+        cv::Mat imgsymb=binaryhold(h);
+        cv::imwrite(out_path +"/"+ to_string(num)+"_symbol.jpg", imgsymb);
+        string o=ch4(imgsymb);
+        cout<<num<<" num "<<o<<" o "<<endl;
+        text+=o;
+
     }
+    //cv::imwrite(out_path+"/08_text.txt");
     cout<<text<<endl;
+    string rres;for(int i=0;i<26;++i) {rres.push_back('a'+i);}for(int i=0;i<10;++i) rres.push_back('0'+i);for(int i=0;i<10;++i) rres.push_back('0'+9-i);for(int i=0;i<26;++i) {rres.push_back('a'+25-i);}
+    cout<<rres<<" rres "<<endl;
 }
 
 void finalExperiment(std::string name, std::string k) {

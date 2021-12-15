@@ -1,5 +1,6 @@
 #include "parseSymbols.h"
 #include <filesystem>
+#include <filesystem>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -12,7 +13,7 @@
 #include <math.h>
 #define NBINS 8
 typedef std::vector<double> HoG;
-#define NSAMPLES_PER_LETTER 5
+#define NSAMPLES_PER_LETTER 50
 #define LETTER_DIR_PATH std::string("lesson11/resultsData/letters")
 typedef HoG hogt;
 using namespace std;
@@ -27,38 +28,38 @@ void cou(HoG a)
 }
 int randFont() {
     int fonts[] = {
-//            cv::FONT_HERSHEY_SIMPLEX,
-//            cv::FONT_HERSHEY_PLAIN,
-//            cv::FONT_HERSHEY_DUPLEX,
-//            cv::FONT_HERSHEY_COMPLEX,
-//            cv::FONT_HERSHEY_TRIPLEX,
+            cv::FONT_HERSHEY_SIMPLEX,
+            cv::FONT_HERSHEY_PLAIN,
+            cv::FONT_HERSHEY_DUPLEX,
+            cv::FONT_HERSHEY_COMPLEX,
+            cv::FONT_HERSHEY_TRIPLEX,
             cv::FONT_HERSHEY_COMPLEX_SMALL,
-//            cv::FONT_HERSHEY_SCRIPT_SIMPLEX,
-//            cv::FONT_HERSHEY_SCRIPT_COMPLEX,
+           cv::FONT_HERSHEY_SCRIPT_SIMPLEX,
+            cv::FONT_HERSHEY_SCRIPT_COMPLEX,
     };
     // Выбираем случайный шрифт из тех что есть в OpenCV
     int nfonts = (sizeof(fonts) / sizeof(int));
     int font = rand() % nfonts;
 
     // С вероятностью 20% делаем шрифт наклонным (italic)
-//    bool is_italic = ((rand() % 5) == 0);
-//    if  (is_italic) {
-//        font = font | cv::FONT_ITALIC;
-//    }
+    bool is_italic = ((rand() % 5) == 0);
+   if  (is_italic) {
+        font = font | cv::FONT_ITALIC;
+    }
 
     return font;
 }
 
 double randFontScale() {
     double min_scale = 2.5;
-    double max_scale = 3.0;
+    double max_scale = 5.0;
     double scale = min_scale + (max_scale - min_scale) * ((rand() % 100) / 100.0);
     return scale;
 }
 
 int randThickness() {
     int min_thickness = 2;
-    int max_thickness = 3;
+    int max_thickness = 5;
     int thickness = min_thickness + rand() % (max_thickness - min_thickness + 1);
     return thickness;
 }
@@ -67,7 +68,7 @@ cv::Scalar randColor2() {
     return cv::Scalar(rand() % 128, rand() % 128, rand() % 128); // можно было бы брать по модулю 255, но так цвета будут темнее и контрастнее
 }
 
-cv::Mat generateImage(std::string text, int width=128, int height=128) {
+cv::Mat generateImage(std::string text, int width=250, int height=400) {
     cv::Scalar white(255, 255, 255);
     cv::Scalar backgroundColor = white;
     // Создаем картинку на которую мы нанесем символ (пока что это просто белый фон)
@@ -102,8 +103,11 @@ HoG normalize(HoG a)
 }
 double dist(hogt a,hogt b)
 {
+    assert(a.size()==NBINS);assert(b.size()==NBINS);
+    //for(auto l:a) cout<<l<<" l "<<endl;for(auto l:b) cout<<l<<" l "<<endl;
     double ans=0;
     for(int i=0;i<a.size();++i) ans+=abs(a[i]-b[i]);
+    //cout<<ans<<" ans "<<endl;
     return ans;
 }
 HoG buildHoG(cv::Mat grad_x, cv::Mat grad_y) {
@@ -219,11 +223,26 @@ double pow2(double x) {
     // TODO 101: чтобы извлечь кусок картинки (для каждого прямоугольника cv::Rect вокруг символа) - загуглите "opencv how to extract subimage"
     return symbols;
 }*/
-vector <hogt> v[26];
+vector <hogt> v[256];
 void generateAllLetters() {
     srand(239017); // фиксируем зерно генератора случайных чисел (чтобы картинки от раза к разу генерировались с одинаковыми шрифтами, размерами и т.п.)
 
     for (char letter = 'a'; letter <= 'z'; ++letter) {
+
+        // Создаем папку для текущей буквы:
+        std::string letterDir = LETTER_DIR_PATH + "/" + letter;
+        std::filesystem::create_directory(letterDir);
+        for (int sample = 1; sample <= NSAMPLES_PER_LETTER; ++sample) {
+            std::string text = std::string("") + letter;
+            cv::Mat img = generateImage(text);
+
+            cv::blur(img, img, cv::Size(3, 3));
+
+            std::string letterSamplePath = letterDir + "/" + std::to_string(sample) + ".png";
+            cv::imwrite(letterSamplePath, img);
+        }
+    }
+    for (char letter = '0'; letter <= '9'; ++letter) {
 
         // Создаем папку для текущей буквы:
         std::string letterDir = LETTER_DIR_PATH + "/" + letter;
@@ -250,6 +269,7 @@ void go1() {
 
     std::cout << "________go1________" << std::endl;
     for (char letter = 'a'; letter <= 'z'; ++letter) {
+        cout<<letter<<" letter "<<endl;
         std::string letterDir = LETTER_DIR_PATH + "/" + letter;
         //cout<<letter<<" letter "<<endl;
         for (int sampleA = 1; sampleA <= NSAMPLES_PER_LETTER; ++sampleA) {
@@ -260,7 +280,22 @@ void go1() {
             //cout<<letter<<endl;
             hogt ans=normalize(hogA);
             //cou(ans);
-            v[letter-'a'].push_back(ans);
+            v[letter].push_back(ans);
+        }
+    }
+    for (char letter = '0'; letter <= '9'; ++letter) {
+        cout<<letter<<" letter "<<endl;
+        std::string letterDir = LETTER_DIR_PATH + "/" + letter;
+        //cout<<letter<<" letter "<<endl;
+        for (int sampleA = 1; sampleA <= NSAMPLES_PER_LETTER; ++sampleA) {
+            cv::Mat a = cv::imread(letterDir + "/" + std::to_string(sampleA) + ".png");
+            //cv::Mat b = cv::imread(letterDir + "/" + std::to_string(sampleB) + ".png");
+            //cout<<" ytgrf "<<endl;
+            HoG hogA = buildHoG(a);
+            //cout<<letter<<endl;
+            hogt ans=normalize(hogA);
+            //cou(ans);
+            v[letter].push_back(ans);
         }
     }
 }
@@ -272,17 +307,23 @@ void prep()
 }
 string ch(cv::Mat img)
 {
+    cout<<" ch "<<endl;
     string ans;
     hogt u=normalize(buildHoG2(img));
     //cou(u);
     pair <int,int> el={-1,-1};
-    for(int i=0;i<26;++i) for(int j=0;j<NSAMPLES_PER_LETTER;++j)
+    for(int i=0;i<256;++i) for(int j=0;j<NSAMPLES_PER_LETTER;++j)
         {
+        if(v[i].empty()) continue;
+        assert(v[i].size()==NSAMPLES_PER_LETTER);
+        //cout<<i<<" i "<<endl;
+        //cout<<((char) i )<<endl;
         if(el.first==(-1) || dist(u,v[el.first][el.second])>dist(u,v[i][j])) el={i,j};
         }
     double d=dist(u,v[el.first][el.second]);
-    //cout<<d<<endl;
-    if(d>=0.2) return ans;
-    ans.push_back((char) ('a'+el.first));
+    //cout<<d<<' '<<((char) (el.first))<<endl;
+    //cout<<dist(u,v['a'][0])<<" dist a "<<endl;
+    if(!(d<0.3)) return ans;
+    ans.push_back((char) (el.first));
     return ans;
 }
