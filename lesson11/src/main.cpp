@@ -9,6 +9,7 @@
 #include <libutils/rasserts.h>
 
 #include <opencv2/imgproc.hpp>
+#include "parseSymbols.h"
 //#include "parsesymbols2.h"
 
 #include <filesystem>
@@ -150,16 +151,16 @@ void test(std::string name, std::string k) {
 //                                                           // если не белый, то что это значит? почему так? сколько в целом нашлось связных компонент?
     sort(v.begin(),v.end(),cmp);
     string text;
-    prep4();
+    prep();
     int num=(-1);
     for(Rect h:v)
     {
-        cout<<num<<" num "<<endl;
+        //cout<<num<<" num "<<endl;
         ++num;
         cv::Mat imgsymb=binaryhold(h);
         cv::imwrite(out_path +"/"+ to_string(num)+"_symbol.jpg", imgsymb);
-        string o=ch4(imgsymb);
-        cout<<num<<" num "<<o<<" o "<<endl;
+        string o=ch(imgsymb);
+        //cout<<num<<" num "<<o<<" o "<<endl;
         text+=o;
 
     }
@@ -182,7 +183,7 @@ int main() {
         test("alphabet", "3_gradient");
 
         // TODO 50: обязательно получите результат на других картинках - прямо в цикле все их обработайте:
-        std::vector<std::string> names;
+       std::vector<std::string> names;
         names.push_back("alphabet");
         names.push_back("line");
         names.push_back("text");

@@ -11,319 +11,115 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
-#define NBINS 8
-typedef std::vector<double> HoG;
-#define NSAMPLES_PER_LETTER 50
-#define LETTER_DIR_PATH std::string("lesson11/resultsData/letters")
-typedef HoG hogt;
 using namespace std;
 using namespace cv;
-const double pi=3.14159265358979;
-void cou(HoG a)
-{
-    cout<<" HoG "<<endl;
-    cout<<a.size()<<endl;
-    for(auto h:a) cout<<h<<' ';
-    cout<<endl;
-}
-int randFont() {
-    int fonts[] = {
-            cv::FONT_HERSHEY_SIMPLEX,
-            cv::FONT_HERSHEY_PLAIN,
-            cv::FONT_HERSHEY_DUPLEX,
-            cv::FONT_HERSHEY_COMPLEX,
-            cv::FONT_HERSHEY_TRIPLEX,
-            cv::FONT_HERSHEY_COMPLEX_SMALL,
-           cv::FONT_HERSHEY_SCRIPT_SIMPLEX,
-            cv::FONT_HERSHEY_SCRIPT_COMPLEX,
-    };
-    // Выбираем случайный шрифт из тех что есть в OpenCV
-    int nfonts = (sizeof(fonts) / sizeof(int));
-    int font = rand() % nfonts;
+typedef cv::Mat mat;
+cv::Mat convertBGRToGray(cv::Mat img) {
+    int height = img.rows;
+    int width = img.cols;
+    cv::Mat grayscaleImg(height, width, CV_8UC1); // в этой картинке мы сохраним черно-белую версию (оттенки серого)
+    // давайте поймем что означает тип картинки CV_32FC1:
+    //                                          CV = Computer Vision (библиотека в целом называетсяOpenCV)
+    //                                             32F = 32-битное floating число, т.е. вещественное число типа float
+    //                                                С1 = 1 channel = один канал - вещественное число описывающее насколько этот пиксель яркий:
+    //                                                                                                            (0.0 - черный, 255.0 = белый)
 
-    // С вероятностью 20% делаем шрифт наклонным (italic)
-    bool is_italic = ((rand() % 5) == 0);
-   if  (is_italic) {
-        font = font | cv::FONT_ITALIC;
-    }
-
-    return font;
-}
-
-double randFontScale() {
-    double min_scale = 2.5;
-    double max_scale = 5.0;
-    double scale = min_scale + (max_scale - min_scale) * ((rand() % 100) / 100.0);
-    return scale;
-}
-
-int randThickness() {
-    int min_thickness = 2;
-    int max_thickness = 5;
-    int thickness = min_thickness + rand() % (max_thickness - min_thickness + 1);
-    return thickness;
-}
-
-cv::Scalar randColor2() {
-    return cv::Scalar(rand() % 128, rand() % 128, rand() % 128); // можно было бы брать по модулю 255, но так цвета будут темнее и контрастнее
-}
-
-cv::Mat generateImage(std::string text, int width=250, int height=400) {
-    cv::Scalar white(255, 255, 255);
-    cv::Scalar backgroundColor = white;
-    // Создаем картинку на которую мы нанесем символ (пока что это просто белый фон)
-    cv::Mat img(height, width, CV_8UC3, backgroundColor);
-
-    // Выберем случайные параметры отрисовки текста - шрифт, размер, толщину, цвет
-    int font = randFont();
-    double fontScale = randFontScale();
-    int thickness = randThickness();
-    cv::Scalar color = randColor2();
-
-    // Узнаем размер текста в пикселях (если его нарисовать с указанными параметрами)
-    int baseline = 0;
-    cv::Size textPixelSize = cv::getTextSize(text, font, fontScale, thickness, &baseline);
-
-    // Рисуем этот текст идеально в середине картинки
-    // (для этого и нужно было узнать размер текста в пикселях - чтобы сделать отступ от середины картинки)
-    // (ведь при рисовании мы указываем координаты левого нижнего угла текста)
-    int xLeft = (width / 2) - (textPixelSize.width / 2);
-    int yBottom = (height / 2) + (textPixelSize.height / 2);
-    cv::Point coordsOfLeftBorromCorner(xLeft, yBottom);
-    cv::putText(img, text, coordsOfLeftBorromCorner, font, fontScale, color, thickness);
-
-    return img;
-}
-
-HoG normalize(HoG a)
-{
-    double sum=0.0;for(auto h:a) sum+=h;
-    for(auto &h:a) h/=sum;
-    return a;
-}
-double dist(hogt a,hogt b)
-{
-    assert(a.size()==NBINS);assert(b.size()==NBINS);
-    //for(auto l:a) cout<<l<<" l "<<endl;for(auto l:b) cout<<l<<" l "<<endl;
-    double ans=0;
-    for(int i=0;i<a.size();++i) ans+=abs(a[i]-b[i]);
-    //cout<<ans<<" ans "<<endl;
-    return ans;
-}
-HoG buildHoG(cv::Mat grad_x, cv::Mat grad_y) {
-    rassert(grad_x.type() == CV_32FC1, 2378274892374008);
-    rassert(grad_y.type() == CV_32FC1, 2378274892374008);
-
-    rassert(grad_x.rows == grad_y.rows, 3748247980010);
-    rassert(grad_x.cols == grad_y.cols, 3748247980011);
-    int height = grad_x.rows;
-    int width = grad_x.cols;
-    //std::cout<<height<<' '<<width<<std::endl;
-    //cout<<" tgrfdewqs "<<endl;
-    HoG hog;
-
-    //
-    // 1) увеличьте размер вектора hog до NBINS (ведь внутри это просто обычный вектор вещественных чисел
-    hog.resize(NBINS);
-    // 2) заполните его нулями
-    fill(hog.begin(),hog.end(),0);
-    // 3) пробегите по всем пикселям входной картинки и посмотрите на каждый градиент
-    // (определенный двумя числами: dx проекцией на ось x в grad_x, dy проекцией на ось y в grad_y)
-    // 4) определите его силу (корень из суммы квадратов), определите его угол направления:
-    // рекомендую воспользоваться atan2(dy, dx) - он возвращает радианы - https://en.cppreference.com/w/cpp/numeric/math/atan2
-    // прочитайте по ссылке на документацию (в прошлой строке) - какой диапазон значений у угла-результата atan2 может быть?
-    // 5) внесите его силу как голос за соответствующую его углу корзину
     for (int j = 0; j < height; ++j) {
         for (int i = 0; i < width; ++i) {
-            float dx = grad_x.at<float>(j, i);
-            float dy = grad_y.at<float>(j, i);
-            float strength = sqrt(dx * dx + dy * dy);
+            cv::Vec3b color = img.at<cv::Vec3b>(j, i);
+            int blue = color[0];
+            int green = color[1];
+            int red = color[2];
 
-            if (strength < 10) // пропускайте слабые градиенты, это нужно чтобы игнорировать артефакты сжатия в jpeg (например в line01.jpg пиксели не идеально белые/черные, есть небольшие отклонения)
-                continue;
+            //  реализуйте усреднение яркости чтобы получить серый цвет
+            //  - обратите внимание что если складывать unsigned char - сумма может переполниться, поэтому перед сложением их стоит преобразовать в int или float
+            //  - загуглите "RGB to grayscale formula" - окажется что правильно это делать не усреднением в равных пропорциях, а с другими коэффициентами
+            float grayIntensity = ((float) red)*0.299+((float) green)*0.587+((float) blue)*0.114;
 
-            //  рассчитайте в какую корзину нужно внести голос
-            int bin = -1;
-            double angle=atan2(dy,dx);
-            angle+=pi;
-            //cout<<angle<<" angle "<<endl;
-            double cang=(2*pi/NBINS);
-            bin=(angle/cang);
-            if(bin==NBINS) --bin;
-            rassert(bin >= 0, 3842934728039);
-            rassert(bin < NBINS, 34729357289040);
-            hog[bin] += strength;
+            grayscaleImg.at<uchar>(j, i) = ((int) grayIntensity);
         }
     }
 
-    rassert(hog.size() == NBINS, 23478937290010);
-    return hog;
+    return grayscaleImg;
 }
-
-// Эта функция просто преобразует картинку в черно-белую, строит градиенты и вызывает buildHoG объявленный выше - TODO ЕЕ ВАМ И НУЖНО ДОДЕЛАТЬ
-HoG buildHoG(cv::Mat originalImg) {
-    cv::Mat img = originalImg.clone();
-
-    rassert(img.type() == CV_8UC3, 347283678950077);
-
-    cv::cvtColor(img, img, cv::COLOR_BGR2GRAY); // преобразуем в оттенки серого
-
-    cv::Mat grad_x, grad_y; // в этих двух картинках мы получим производную (градиент=gradient) по оси x и y
-    // для этого достаточно дважды применить оператор Собеля (реализованный в OpenCV)
-    cv::Sobel(img, grad_x, CV_32FC1, 1, 0);
-    cv::Sobel(img, grad_y, CV_32FC1, 0, 1);
-    rassert(!grad_x.empty(), 234892748239070017);
-    rassert(!grad_y.empty(), 234892748239070018);
-
-    // TODO реализуйте эту функцию:
-    HoG hog = buildHoG(grad_x, grad_y);
-    return hog;
-}
-
-HoG buildHoG2(cv::Mat originalImg) {
-    cv::Mat img = originalImg.clone();
-
-    //rassert(img.type() == CV_8UC3, 347283678950077);
-
-    //cv::cvtColor(img, img, cv::COLOR_BGR2GRAY); // преобразуем в оттенки серого
-
-    cv::Mat grad_x, grad_y; // в этих двух картинках мы получим производную (градиент=gradient) по оси x и y
-    // для этого достаточно дважды применить оператор Собеля (реализованный в OpenCV)
-    cv::Sobel(img, grad_x, CV_32FC1, 1, 0);
-    cv::Sobel(img, grad_y, CV_32FC1, 0, 1);
-    rassert(!grad_x.empty(), 234892748239070017);
-    rassert(!grad_y.empty(), 234892748239070018);
-
-    // TODO реализуйте эту функцию:
-    HoG hog = buildHoG(grad_x, grad_y);
-    return hog;
-}
-
-// TODO реализуйте функцию которая позволит выводить гистограмму в консоль через std::cout << myHOG << std::endl;
-// Пример корректного вывода (выводите не само значение накопленных голосов за каждое направление, а процент от общей суммы голосов):
-// HoG[22.5=0%, 67.5=78%, 112.5=21%, 157.5=0%, 202.5=0%, 247.5=0%, 292.5=0%, 337.5=0%]
-std::ostream &operator<<(std::ostream &os, const HoG &hog) {
-    rassert(hog.size() == NBINS, 234728497230016);
-
-    // TODO
-    os << "HoG[";
-    for (int bin = 0; bin < NBINS; ++bin) {
-//        os << angleInDegrees << "=" << percentage << "%, ";
-    }
-    os << "]";
-    return os;
-}
-
-double pow2(double x) {
-    return x * x;
-}
-/*std::vector<cv::Mat> splitSymbols(cv::Mat img)
+int N=100;int M=100;
+vector <pair<string,mat> > v;
+vector <string> have;
+int dist(mat img1,mat img2)
 {
-    std::vector<cv::Mat> symbols;
-    // TODO 101: чтобы извлечь кусок картинки (для каждого прямоугольника cv::Rect вокруг символа) - загуглите "opencv how to extract subimage"
-    return symbols;
-}*/
-vector <hogt> v[256];
-void generateAllLetters() {
-    srand(239017); // фиксируем зерно генератора случайных чисел (чтобы картинки от раза к разу генерировались с одинаковыми шрифтами, размерами и т.п.)
-
-    for (char letter = 'a'; letter <= 'z'; ++letter) {
-
-        // Создаем папку для текущей буквы:
-        std::string letterDir = LETTER_DIR_PATH + "/" + letter;
-        std::filesystem::create_directory(letterDir);
-        for (int sample = 1; sample <= NSAMPLES_PER_LETTER; ++sample) {
-            std::string text = std::string("") + letter;
-            cv::Mat img = generateImage(text);
-
-            cv::blur(img, img, cv::Size(3, 3));
-
-            std::string letterSamplePath = letterDir + "/" + std::to_string(sample) + ".png";
-            cv::imwrite(letterSamplePath, img);
+    //cout<<" dist "<<endl;
+    assert(img1.rows==img2.rows);assert(img1.cols==img2.cols);
+    int n=img1.rows;int m=img2.cols;
+    int ans=0;
+    for(int i=0;i<n;++i) for(int j=0;j<m;++j)
+        {
+        bool ok1=((img1.at<uchar>(i,j))>=127);bool ok2=((img2.at<uchar>(i,j))>=127);
+        if(ok1!=ok2) ++ans;
         }
-    }
-    for (char letter = '0'; letter <= '9'; ++letter) {
-
-        // Создаем папку для текущей буквы:
-        std::string letterDir = LETTER_DIR_PATH + "/" + letter;
-        std::filesystem::create_directory(letterDir);
-        for (int sample = 1; sample <= NSAMPLES_PER_LETTER; ++sample) {
-            std::string text = std::string("") + letter;
-            cv::Mat img = generateImage(text);
-
-            cv::blur(img, img, cv::Size(3, 3));
-
-            std::string letterSamplePath = letterDir + "/" + std::to_string(sample) + ".png";
-            cv::imwrite(letterSamplePath, img);
+    return ans;
+}
+string h1;
+mat norm(mat img) {
+    //cout<<img.rows<<' '<<img.cols<<" img "<<endl;
+    imwrite("lesson11/resultsData/debug/"+h1+"1.jpg",img);
+    int n=img.rows;int m=img.cols;
+    //cout<<n<<" n "<<m<<" m "<<endl;
+    //cout<<" norm "<<endl;
+    mat res = Mat::zeros(N, M, CV_8UC1);
+    //cout<<" ok0 "<<endl;
+    //cout<<" ok1 "<<endl;
+    //for(int i=0;i<n;++i) {for(int j=0;j<m;++j) cout<<(img.at<uchar>(i,j)>=127); cout<<endl;}
+    for (int i = 0; i < M; ++i) for (int j = 0; j < N; ++j)
+        {
+        //cout<<i<<" i "<<j<<" j "<<(i*n)/N<<' '<<(j*m)/M<<endl;
+        uchar o=img.at<uchar>((i*n)/N,(j*m)/M);
+         res.at<uchar>(i,j)=o;
         }
+    //assert(sum!=0);cout<<sum<<" sum "<<endl;
+    //cout<<" norm2 "<<endl;
+   // exit(0);
+    return res;
+}
+void generatev()
+{
+    //cout<<" generatev "<<endl;
+    for(string h:have) {
+        h1=h;
+        string path = "lesson11/data/base/" + h + ".jpg";
+        //cout<<path<<" path "<<endl;
+        mat img = imread(path);
+        img=convertBGRToGray(img);
+        assert(img.type()==CV_8UC1);
+        //cout<<h<<" h "<<endl;
+        imwrite("lesson11/resultsData/debug/"+h+"0.jpg",img);
+        mat img2 = norm(img);
+        imwrite("lesson11/resultsData/debug/"+h+".jpg",img2);
+        v.push_back({h, img2});
     }
 }
-void go1() {
-    // TODO Проведите эксперимент 1:
-    // Пробежав в цикле по каждой букве - посчитайте насколько сильно она отличается между своими пятью примерами? (NSAMPLES_PER_LETTER)
-    // Для каждой буквы выведите:
-    // 1) Среднее попарное расстояние (среднюю похожесть) между всеми примерами этой буквы
-    // 2) Максимальное попарное расстояние между примерами этой буквы
-    //
-    // А так же среди всех максимальных расстояний найдите максимальное и выведите его в конце
-
-    std::cout << "________go1________" << std::endl;
-    for (char letter = 'a'; letter <= 'z'; ++letter) {
-        cout<<letter<<" letter "<<endl;
-        std::string letterDir = LETTER_DIR_PATH + "/" + letter;
-        //cout<<letter<<" letter "<<endl;
-        for (int sampleA = 1; sampleA <= NSAMPLES_PER_LETTER; ++sampleA) {
-            cv::Mat a = cv::imread(letterDir + "/" + std::to_string(sampleA) + ".png");
-            //cv::Mat b = cv::imread(letterDir + "/" + std::to_string(sampleB) + ".png");
-            //cout<<" ytgrf "<<endl;
-            HoG hogA = buildHoG(a);
-            //cout<<letter<<endl;
-            hogt ans=normalize(hogA);
-            //cou(ans);
-            v[letter].push_back(ans);
-        }
-    }
-    for (char letter = '0'; letter <= '9'; ++letter) {
-        cout<<letter<<" letter "<<endl;
-        std::string letterDir = LETTER_DIR_PATH + "/" + letter;
-        //cout<<letter<<" letter "<<endl;
-        for (int sampleA = 1; sampleA <= NSAMPLES_PER_LETTER; ++sampleA) {
-            cv::Mat a = cv::imread(letterDir + "/" + std::to_string(sampleA) + ".png");
-            //cv::Mat b = cv::imread(letterDir + "/" + std::to_string(sampleB) + ".png");
-            //cout<<" ytgrf "<<endl;
-            HoG hogA = buildHoG(a);
-            //cout<<letter<<endl;
-            hogt ans=normalize(hogA);
-            //cou(ans);
-            v[letter].push_back(ans);
-        }
-    }
-}
+int cur=(-1);
 void prep()
 {
-    generateAllLetters();
-    go1();
+    //cout<<" prep "<<endl;
+    for(char s='a';s<='z';++s) {string o;o.push_back(s);have.push_back(o);}
+    for(char s='1';s<='9';++s) {string o;o.push_back(s);have.push_back(o);}
+    generatev();
     //cout<<" generated all"<<endl;
 }
 string ch(cv::Mat img)
 {
-    cout<<" ch "<<endl;
+    ++cur;
+    //cout<<" ch "<<endl;
     string ans;
-    hogt u=normalize(buildHoG2(img));
-    //cou(u);
-    pair <int,int> el={-1,-1};
-    for(int i=0;i<256;++i) for(int j=0;j<NSAMPLES_PER_LETTER;++j)
-        {
-        if(v[i].empty()) continue;
-        assert(v[i].size()==NSAMPLES_PER_LETTER);
-        //cout<<i<<" i "<<endl;
-        //cout<<((char) i )<<endl;
-        if(el.first==(-1) || dist(u,v[el.first][el.second])>dist(u,v[i][j])) el={i,j};
-        }
-    double d=dist(u,v[el.first][el.second]);
-    //cout<<d<<' '<<((char) (el.first))<<endl;
-    //cout<<dist(u,v['a'][0])<<" dist a "<<endl;
-    if(!(d<0.3)) return ans;
-    ans.push_back((char) (el.first));
+    if(img.rows<=15 && img.cols<=15) return ans;
+    mat img2=norm(img);
+    imwrite("lesson11/resultsData/debug/"+to_string(cur)+".jpg",img2);
+    string el;int mi=((int) 1e9);
+    for(auto h:v)
+    {
+        int dst=dist(img2,h.second);
+        if(dst<mi) {mi=dst;el=h.first;}
+    }
+    ans=el;
     return ans;
 }
