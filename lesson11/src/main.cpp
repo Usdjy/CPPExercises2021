@@ -55,12 +55,14 @@ cv::Mat drawContours(int rows, int cols, std::vector<std::vector<cv::Point>> con
 
 bool cmp(Rect u,Rect v)
 {
-    return make_pair(u.y/100,u.x)<make_pair(v.y/100,v.x);
+    if(u.y>v.y+40) return false;
+    if(u.y<v.y-40) return true;
+    return u.x<v.x;
 }
-void test(std::string name, std::string k) {
+void test(std::string name, std::string k,bool flag=false) {
     std::cout << "Processing " << name << "/" << k << "..." << std::endl;
 
-    std::string full_path = "lesson11/data/" + name + "/" + k + ".png";
+    std::string full_path;if(!flag) full_path= "lesson11/data/" + name + "/" + k + ".png"; else full_path= "lesson11/data/" + name + "/" + k + ".jpg";
 
     // создаем папочки в которые будем сохранять картинки с промежуточными результатами
     std::filesystem::create_directory("lesson11/resultsData/" + name);
@@ -184,6 +186,8 @@ int main() {
 
         // TODO 50: обязательно получите результат на других картинках - прямо в цикле все их обработайте:
        std::vector<std::string> names;
+        test("text","photo",true);
+        test("text","scan",true);
         names.push_back("alphabet");
         names.push_back("line");
         names.push_back("text");
