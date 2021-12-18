@@ -111,7 +111,7 @@ string ch(cv::Mat img)
     ++cur;
     //cout<<" ch "<<endl;
     string ans;
-    if(img.rows<=15 && img.cols<=15) return ans;
+    if(img.rows<=23 && img.cols<=23) return ans;
     mat img2=norm(img);
     imwrite("lesson11/resultsData/debug/"+to_string(cur)+".jpg",img2);
     string el;int mi=((int) 1e9);
