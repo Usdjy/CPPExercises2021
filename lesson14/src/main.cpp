@@ -10,7 +10,8 @@
 #include <memory>
 
 #include <libutils/rasserts.h>
-
+using namespace std;
+using namespace cv;
 
 void drawText(cv::Mat img, std::string text, double fontScale, int &yOffset) {
     cv::Scalar white(255, 255, 255);
@@ -72,12 +73,32 @@ void run() {
                 // TODO кроме того будет быстрее работать если вы будете использовать релизную сборку вместо Debug:
                 // см. "Как ускорить программу" - https://www.polarnick.com/blogs/239/2021/school239_11_2021_2022/2021/10/05/lesson5-disjoint-set.html
             }
+            vector <KeyPoint> keypoints0,keypoints1;
+            Mat descriptors0, descriptors1; // здесь будут зраниться дескрипторы этих ключевых точек
+            cout << "Detecting SIFT keypoints and describing them (computing their descriptors)..." << endl;
+            detector->detectAndCompute(currentFrame, cv::noArray(), keypoints0, descriptors0);
+            detector->detectAndCompute(imgForDetection, cv::noArray(), keypoints1, descriptors1);
+            std::cout << "SIFT keypoints detected and described: " << keypoints0.size() << " and " << keypoints1.size() << std::endl;
 
-            // TODO детектируйте и постройте дескрипторы у ключевых точек
-            // std::cout << "Keypoints initially: " << keypoints0.size() << ", " << keypoints1.size() << "..." << std::endl;
+            // детектируйте и постройте дескрипторы у ключевых точек
+             //std::cout << "Keypoints initially: " << keypoints0.size() << ", " << keypoints1.size() << "..." << std::endl;
 
             // TODO сопоставьте ключевые точки
+            std::vector<std::vector<cv::DMatch>> matches01;
+            std::cout << "Matching " << keypoints0.size() << " points with " << keypoints1.size() << "..." << std::endl; // TODO
+            matcher->knnMatch(descriptors0, descriptors1, matches01, 2);
+            std::vector<std::vector<cv::DMatch>> matches10;
+            matcher->knnMatch(descriptors1, descriptors0, matches10, 2);
+            for (int i = 0; i < matches10.size(); ++i) {
+                rassert(matches10[i].size() == 2, 3427890347902051);
+                rassert(matches10[i][0].queryIdx == i, 237812974128941); // queryIdx - это индекс ключевой точки в первом векторе точек, т.к. мы для всех точек keypoints0
+                rassert(matches10[i][1].queryIdx == i, 237812974128942); // ищем ближайшую в keypoints1, queryIdx == i, т.е. равен индексу очередной точки keypoints0
 
+                rassert(matches10[i][0].trainIdx < keypoints0.size(), 237812974128943); // trainIdx - это индекс точки в keypoints1 самой похожей на keypoints0[i]
+                rassert(matches10[i][1].trainIdx < keypoints0.size(), 237812974128943); // а этот trainIdx - это индекс точки в keypoints1 ВТОРОЙ по похожести на keypoints0[i]
+
+                rassert(matches10[i][0].distance <= matches10[i][1].distance, 328493778); // давайте явно проверим что расстояние для этой второй точки - не меньше чем для первой точки
+            }
             // TODO пофильтруйте сопоставления, как минимум через K-ratio test, но лучше на ваш выбор
 //            std::vector<cv::Point2f> points0;
 //            std::vector<cv::Point2f> points1;
@@ -99,6 +120,60 @@ void run() {
 //                }
 //            }
 //            rassert(points0.size() == points1.size(), 234723947289089);
+            std::cout << "Filtering matches..." << std::endl;
+            std::vector<cv::Point2f> points0, points1; // здесь сохраним координаты ключевых точек для удобства позже
+            std::vector<unsigned char> matchIsGood; // здесь мы отметим true - хорошие сопоставления, и false - плохие
+            int nmatchesGood = 0; // посчитаем сколько сопоставлений посчиталось хорошими
+            for (int i = 0; i < keypoints0.size(); ++i) {
+                cv::DMatch match = matches01[i][0];
+                std::vector<double> distances;
+                for (int i = 0; i < matches01.size(); ++i) {
+                    distances.push_back( matches01[i][0].distance );
+                }
+                sort(distances.begin(),distances.end());
+                rassert(match.queryIdx == i, 234782749278097); // и вновь - queryIdx это откуда точки (поэтому всегда == i)
+                int j = match.trainIdx; // и trainIdx - это какая точка из второго массива точек оказалась к нам (к queryIdx из первого массива точек) ближайшей
+                rassert(j < keypoints1.size(), 38472957238099); // поэтому явно проверяем что индекс не вышел за пределы второго массива точек
+
+                points0.push_back(keypoints0[i].pt);
+                points1.push_back(keypoints1[j].pt);
+
+                bool isOk = true;
+
+                // реализуйте фильтрацию на базе "достаточно ли похож дескриптор?" - как можно было бы подобрать порог? вспомните про вывод min/median/max раньше
+                if (match.distance > distances[distances.size()/3]) {
+                    isOk = false;
+                }
+
+                // добавьте K-ratio тест (K=0.7), т.е. проверьте правда ли самая похожая точка сильно ближе к нашей точки (всмысле расстояния между дескрипторами) чем вторая по похожести?
+                cv::DMatch match2 = matches01[i][1];
+                if (match.distance > 0.7*match2.distance) {
+                    isOk = false;
+                }
+
+                //  добавьте left-right check, т.е. проверку правда ли если для точки А самой похожей оказалась точка Б, то вероятно при обратном сопоставлении и у точки Б - ближайшей является точка А
+                cv::DMatch match01 = match;
+                cv::DMatch match10 = matches10[match.trainIdx][0];
+                if (match10.trainIdx!=i) {
+                    isOk = false;
+                }
+
+                // TODO: визуализация в 04goodMatches01.jpg покажет вам какие сопоставления остаются, какой из этих методов фильтрации оказался лучше всего?
+                // TODO: попробуйте оставить каждый из них закомменьтировав два других, какой самый крутой?
+                // TODO: попробуйте решить какую комбинацию этих методов вам хотелось бы использовать в результате?
+                // я сразу все использовал,работает хорошо
+
+                if (isOk) {
+                    ++nmatchesGood;
+                    matchIsGood.push_back(true);
+                } else {
+                    matchIsGood.push_back(false);
+                }
+            }
+            rassert(points0.size() == points1.size(), 3497282579850108);
+            rassert(points0.size() == matchIsGood.size(), 3497282579850109);
+            int sum=0;for(auto h:matchIsGood) sum+=h;
+            // выведите сколько из скольки соответствий осталось после фильтрации:
             // TODO добавьте вывод в лог - сколько ключевых точек было изначально, и сколько осталось сопоставлений после фильтрации
 
             // TODO findHomography(...) + рисование поверх:

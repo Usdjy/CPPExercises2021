@@ -9,6 +9,7 @@
 
 #include <libutils/rasserts.h>
 using namespace std;
+using namespace cv;
 
 std::vector<cv::Point2f> filterPoints(std::vector<cv::Point2f> points, std::vector<unsigned char> matchIsGood) {
     rassert(points.size() == matchIsGood.size(), 234827348927016);
@@ -22,7 +23,7 @@ std::vector<cv::Point2f> filterPoints(std::vector<cv::Point2f> points, std::vect
     return goodPoints;
 }
 
-
+cv::Mat Hij;
 void test(string caseName,string s0,string s1,bool isalternative,string alterantive) {
     cout<<" test "<<caseName<<' '<<s0<<' '<<s1<<endl;
     string save=s0.substr(0,1);
@@ -254,7 +255,8 @@ void test(string caseName,string s0,string s1,bool isalternative,string alterant
     cv::imwrite(results + "06img1.jpg", img1); // сохраняем вторую картинку
 
     cv::Mat img0to1;
-    cv::warpPerspective(img0, img0to1, H01, img1.size()); // преобразуем первую картинку соответственно матрице преобразования
+    Hij=H01;
+    cv::warpPerspective(img0, img0to1, H01, {img0.size().width+img1.size().width,img0.size().height+img1.size().height}); // преобразуем первую картинку соответственно матрице преобразования
     cv::imwrite(results + "07img0to1.jpg", img0to1); // проверьте что она почти совпала со второй картинкой
 
 
@@ -292,25 +294,104 @@ void test3() {
 }
 
 void test4() {
+    vector <Mat> v;
+    int sz1=0;int sz2=0;
+    for(int i=0;i<=8;++i)
+    {
+        string path = "lesson13/data/4_aero9/"+((string) to_string(i))+".JPG";
+        Mat img0 = imread(path);//"box0.png"
+        sz1+=img0.size().width;sz2+=img0.size().height;
+    }
     for(int i=0;i<=7;++i)
     {
         test("4_aero9",to_string(i)+".JPG",to_string(i+1)+".JPG",false,"");
+        v.push_back(Hij);
     }
+    cout<<" yhtgrf "<<endl;
+    Mat img(2*sz1,2*sz2,CV_8UC3,Scalar(0,0,0));
+    for(int i=0;i<=8;++i)
+    {
+        cout<<" myjtnhrbge "<<endl;
+        std::string path = "lesson13/data/4_aero9/"+to_string(i)+".JPG";
+        cv::Mat img0 = cv::imread(path);//"box0.png"
+        cout<<img0.size().width<<' '<<img0.size().height<<endl;
+        vector<double> vf = {1,0,sz1+0.0,0,1,sz2+0.0,0,0,1};
+        cout<<" tgrfed "<<endl;
+        cv::Mat H=Mat(3,3,CV_64FC1,vf.data());
+        cout<<" bbbgfnedsk "<<endl;
+        for(int j=i;j<8;++j) {cout<<H.size().width<<' '<<H.size().height<<' '<<v[j].size().width<<' '<<v[j].size().height<<endl;H=H*v[j];}
+        cout<<" gtfr "<<endl;
+        cv::warpPerspective(img0, img, H, img.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
+    }
+    string results="lesson13/resultsData/panorama/";
+    if (!std::filesystem::exists(results)) { // если папка для результатов еще не создана
+        std::filesystem::create_directory(results); // то создаем ее
+    }
+    cv::imwrite(results + "panorama.JPG", img);
+    /*int mai=0,mii=1e9,maj=0,mij=1e9;
+    for(int i=0;i<img.size().width;++i)
+    {
+        for(int j=0;j<img.size().height;++j)
+        {
+            Vec3b v=img.at<Vec3b>(i,j);
+            if((v[0]+v[1]+v[2])!=0)
+            {
+                mii=min(mii,i);mai=max(mai,i);mij=min(mij,j);maj=max(maj,j);
+            }
+        }
+    }
+    Mat img2(mai-mii+1,maj-mij+1,CV_8UC3,Scalar(0,0,0));
+    for(int i=mii;i<=mai;++i)
+    {
+        for(int j=mij;j<=maj;++j)
+        {
+            img2.at<Vec3b>(i,j)=img.at<Vec3b>(i+mii,j+mij);
+        }
+    }
+    cv::imwrite(results + "panorama2.JPG", img2);*/
     // добровольное, подсказка, если матрица A01 переводит первую картинку во вторую, матрица A12 - переводит вторую картинку в третью, то:
     // cv::Mat A02 = A12 * A01; // матрица A02 - является их композицией и переводит из первой картинки в третью (по сути совершая внутри себя промежуточные переходы)
 }
-
+void cutpanorama()
+{
+    int mai=0,mii=1e9,maj=0,mij=1e9;
+    string results="lesson13/resultsData/panorama/";
+    Mat img=imread(results+"panorama.JPG");
+    cout<<" gfdtgrf "<<endl;
+    for(int i=0;i<img.size().width;++i)
+    {
+        for(int j=0;j<img.size().height;++j)
+        {
+            Vec3b v=img.at<Vec3b>(i,j);
+            if((v[0]+v[1]+v[2])!=0)
+            {
+                mii=min(mii,i);mai=max(mai,i);mij=min(mij,j);maj=max(maj,j);
+            }
+        }
+    }
+    cout<<mii<<' '<<mai<<' '<<mij<<' '<<maj<<endl;
+    Mat img2(mai-mii+1,maj-mij+1,CV_8UC3,Scalar(0,0,0));
+    for(int i=mii;i<=mai;++i)
+    {
+        for(int j=mij;j<=maj;++j)
+        {
+            img2.at<Vec3b>(i-mii,j-mij)=img.at<Vec3b>(i,j);
+        }
+    }
+    cv::imwrite(results + "panorama2.JPG", img2);
+}
 
 int main() {
     cout<<" main "<<endl;
     try {
         cout<<" redqws "<<endl;
-        test1(); // TODO обязательное
-        test2(); // TODO обязательное
-        test3(); // TODO обязательное
+        //test1(); // TODO обязательное
+        //test2(); // TODO обязательное
+       // test3(); // TODO обязательное
 
-        test4(); // TODO добровольный бонус
-
+        //test4(); // TODO добровольный бонус
+        cout<<" cuttingpanorama "<<endl;
+        cutpanorama();
         return 0;
     } catch (const std::exception &e) {
         std::cout << "Exception! " << e.what() << std::endl;
