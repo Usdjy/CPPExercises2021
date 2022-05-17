@@ -18,8 +18,19 @@
 #include "helpers.h" // ЗДЕСЬ (и в helpers.cpp) ДЛЯ ВАС РЕАЛИЗОВАНЫ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ И СТРУКТУРЫ, ПОСТРОЙТЕ АЛГОРИТМ НА ИХ БАЗЕ
 #include "disjoint_set.h"
 #include "constants.h"
+using namespace std;
+using namespace cv;
+void myrun(std::string caseName) {
+    std::cout << "__________________Case " << caseName << "__________________" << std::endl;
+    cv::Mat original = cv::imread("lesson20/data/" + caseName + ".jpg");
+    rassert(!original.empty(), 324789374290018);
+    Mat img=original.clone();
+    int n=img.rows;int m=img.cols;
+    vector<vector<double> > a(n,vector<double> (m,0));
+    for(int i=0;i<n;++i) assert(a[i].size()==m);
+    for(int i=0;i<n;++i) for(int j=0;j<m;++j) {a[]}
 
-
+}
 void run(std::string caseName) {
     std::cout << "__________________Case " << caseName << "__________________" << std::endl;
 
@@ -170,7 +181,7 @@ void run(std::string caseName) {
         GradientsCluster clusterA = clusters[clusterIndexA];
         GradientsCluster clusterB = clusters[clusterIndexB];
         /* TODO реализуйте здесь объединение двух кластеров - посмотрите, может у класса GradientsCluster есть подходящий для этого метод? */
-
+        GradientsCluster clusterAB=clusterA.plus(clusterB);
         /* TODO реализуйте здесь формулы проверяющие можно ли объединить эти два кластера, т.е. можно ли использовать этот объединенный кластер */
         bool directionOk = true;
         bool magnitudeOk = true;
@@ -332,12 +343,12 @@ int main() {
         int nthreads = omp_thread_count();
         std::cout << "CPU on this computer has " << nthreads << " virtual threads" << std::endl;
 
-        run("00");
-        run("01");
-        run("02");
-        run("03");
-        run("04");
-        run("05");
+        myrun("00");
+        myrun("01");
+        myrun("02");
+        myrun("03");
+        myrun("04");
+        myrun("05");
 
         return 0;
     } catch (const std::exception &e) {

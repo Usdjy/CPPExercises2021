@@ -32,3 +32,4 @@ add_subdirectory(lesson18) # ретуширование фотографии, з
 add_subdirectory(lesson19) # примеры с OpenMP (поэлементно, sum-reduction, поиск двух наибольших элементов)
 
 add_subdirectory(lesson20) # AprilTags - обнаружение и декодирование April Tag
+add_subdirectory(solevoy) # солевой
